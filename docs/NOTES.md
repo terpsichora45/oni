@@ -1,5 +1,13 @@
 # Notes
 
+[torIRC](https://gist.github.com/torifier/f1a7c1ac7b6b003cd9e1c187df2c5347)
+
+[Stem Tutorials](https://stem.torproject.org/tutorials/double_double_toil_and_trouble.html)
+
+[Tor Proxy in Python](https://ohyicong.medium.com/how-to-create-tor-proxy-with-python-cheat-sheet-101-3d2d619a1d39)
+
+[Stem Homepage](https://stem.torproject.org/index.html)
+
 ## Onion Routing Notes
 
 [Wikipedia - Onion Routing](https://en.wikipedia.org/wiki/Onion_routing)
