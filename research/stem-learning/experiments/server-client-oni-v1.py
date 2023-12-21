@@ -53,7 +53,7 @@ class Server:
     def handle_client(self, conn, addr, nickname):
         log("Connection established to %s" % nickname)
         data = conn.recv(buffer_size)
-        log("%s >> %s" % (nickname, data))
+        log("%s >> %s" % (nickname, sanitize(data)))
         conn.close()
         log("Connection closed to %s" % nickname)
         # todo: handle the client data
@@ -108,11 +108,22 @@ def add_padding(data: str):
             data += chr(random.randint(ord('a'), ord('z')))
     return data
 
+def sanitize(data: str):
+    if len(data) > 0:
+        return str(data.split(bytearray(chr(0).encode()))[0]) # split on \x0 and return relevant data
+    else:return
+
 def log(*args):
     for arg in args:
         print("[%s] %s" % (datetime.datetime.now().strftime("%H:%M:%S"), arg))
 
 def main_client(destination) -> None:
+    # todo: continue the client to allow for receiving messages
+    # todo: allow the client to send real-time information
+
+    # :: in progress :: 
+    # - integrate user input
+
     try:
         import socks
     except:
@@ -135,8 +146,16 @@ def main_client(destination) -> None:
         except:
             log("Client Connection: Cannot connect. Retrying...")
             time.sleep(1)
-            # continue
-            break
+            continue
+
+        try: # start of user input
+            # web-based user input vs cli-based user input
+            # web-based could have a better interface and just have python act as the server
+            # cli-based could have easier setup and use
+            # i think ill have the python run as a server in the background with a web interface to call send and receive
+            # it could be a good opprotunity to use django
+            pass
+        except:pass
 
         # todo
         # : setup message obfuscation

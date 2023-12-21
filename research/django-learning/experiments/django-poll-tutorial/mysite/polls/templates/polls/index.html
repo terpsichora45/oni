@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<head>
+    <title>Django Project</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'polls/style.css' %}">
+
+</head>
+<body>
+    <style>
+        #nav-bar {
+            display: flex;
+            flex-direction: row;
+        }
+        #nav-bar > * {
+            padding-left: 15px;
+        }
+    </style>
+
+    <div id="nav-bar">
+        <a href="{% url 'polls:index' %}">Home</a>
+        <a href="/admin/">Admin</a>
+    </div>
+
+    <h2>Questions</h2>
+    {% if latest_question_list %}
+        <ul>
+            {% for question in latest_question_list %}
+                <li><a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a></li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No polls are available.</p>
+    {% endif %}
+</body>

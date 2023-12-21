@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+    <title>{{ question }}: Question</title>
+</head>
+<body>
+    <style>
+        #nav-bar {
+            display: flex;
+            flex-direction: row;
+        }
+        #nav-bar > * {
+            padding-left: 15px;
+        }
+    </style>
+
+    <div id="nav-bar">
+        <a href="{% url 'polls:index' %}">Home</a>
+        <a href="/admin/">Admin</a>
+    </div>
+
+    <form action="{% url 'polls:vote' question.id %}" method="post">
+        {% csrf_token %}
+        <fieldset>
+            <legend><h1>{{ question.question_text }}</h1></legend>
+            {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+            {% for choice in question.choice_set.all %}
+                <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}">
+                <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
+            {% endfor %}
+        </fieldset>
+        <input type="submit" value="Vote">
+    </form>
+</body>
