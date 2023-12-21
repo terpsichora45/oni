@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7 
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -248,12 +248,6 @@ import time,os,subprocess
 import socket,select,random,sys
 import tempfile
 
-
-
-
-
-
-
 ## ---------- Start of user-configurable variables ----------------
 
 minimum_message_len=256
@@ -278,12 +272,6 @@ buddywidth=20
 
 ## ---------- End of user-configurable variables -----------------
 
-
-
-
-
-
-
 # lists for the gui
 chantext=[]
 roster=[]
@@ -302,6 +290,7 @@ class torStem():
                         print("[E] Try installing python-stem with the package manager of your distro ('pacman' or whatever)")
                         exit(0)
                 # Connect to TOR
+                # !: make sure you run the tor server on the local machine
                 self.controller = Controller.from_port(address=addr,port=cport)
                 self.controller.authenticate()  # provide the password here if you set one
         
@@ -341,40 +330,6 @@ class torStem():
  
           self.controller.remove_ephemeral_hidden_service(self.hostname.replace('.onion', ''))
  
-  
-  
-  
-  
-            
-            
-# stuff from 2013 not working any longer :              
-
-
-
-                #newHiddenServiceDir=tempfile.mkdtemp()
-                #self.origConfmap = self.controller.get_conf_map("HiddenServiceOptions")
-                #self.controller.set_options([
-                        #('HiddenServiceDir' ,self.origConfmap["HiddenServiceDir"]),
-                        #('HiddenServicePort',self.origConfmap["HiddenServicePort"]),
-                        #('HiddenServiceDir',newHiddenServiceDir),
-                        #('HiddenServicePort',"%d %s:%d" % (hidden_service_port,hidden_service_interface,hidden_service_port))
-                        #])
-                #self.hostname=open("%s/hostname" % newHiddenServiceDir,"rb").read().strip()
-
-
-
-
-        #def disconnect(self):
-          ## Remove hidden service
-          #print("Removing hidden service..."
-          #self.controller.set_options([
-                #('HiddenServiceDir',self.origConfmap["HiddenServiceDir"]),
-                #('HiddenServicePort',self.origConfmap["HiddenServicePort"])
-                #])
-
-
-
-
 ## Log Mode (Server logs to stdout, client do not)
 STDoutLog=False
 
@@ -389,8 +344,9 @@ def addpadding(message):
 
 ## Return sanitized version of input string
 def sanitize(string):
+        # log("[D] Entered sanitize function %s" % string)
         out=""
-        for c in string:
+        for c in str(string):
                 if (ord(c)==0): break # char(0) marks start of padding
                 if (ord(c)>=0x20) and (ord(c)<0x80):
                         out+=c
@@ -411,7 +367,6 @@ def log(text):
                                 break
                 redraw(stdscr)
                 stdscr.refresh()
-
 
 ### Server class
 # Contains the server socket listener/writer
@@ -492,7 +447,7 @@ class Server():
                                         randomwait-=1 # Wait some random time to add noise
                                         if randomwait==0:
                                                 m = addpadding(msg.pop(0))
-                                                conn.sendall(m)
+                                                conn.sendall(bytearray(m.encode()))
                                                 randomwait=random.randint(1,serverRandomWait)
                                 # Random wait before sending noise to the client
                                 if random.randint(0,clientRandomNoise)==0: 
@@ -631,7 +586,7 @@ def processLine(command):
 def clientConnectionThread(stdscr,ServerOnionURL,msgs):
         global roster
         # Try to load Socksipy
-        try:
+        try: # NOTE: move the socks.py module into wd
                 import socks
         except:
                 print("[E] Cannot load socksiPy module.")
@@ -640,12 +595,14 @@ def clientConnectionThread(stdscr,ServerOnionURL,msgs):
         while(True):
                 try: 
                         log("Trying to connect to %s:%d" % (ServerOnionURL,hidden_service_port))
+                        
                         ## Connects to TOR via Socks
                         s=socks.socksocket(socket.AF_INET,socket.SOCK_STREAM)
                         s.setproxy(socks.PROXY_TYPE_SOCKS5,tor_server,tor_server_socks_port)
-                        s.settimeout(100)
+                        s.settimeout(0) # note: updated from 100
                         s.connect((ServerOnionURL,hidden_service_port))
                         s.setblocking(0)
+
                         log("clientConnection: Connected to %s" % ServerOnionURL)
                         log("clientConnection: Autorequesting roster...")
                         msgs.append("/roster")
@@ -657,26 +614,30 @@ def clientConnectionThread(stdscr,ServerOnionURL,msgs):
                 try:
                         while(True):
                                 time.sleep(1)
+                                # NOTE: wait for activity from the socket
                                 ready = select.select([s], [], [], 1.0)
                                 # received data from server
                                 if ready[0]:
-                                        data=sanitize(s.recv(minimum_message_len))
+                                        try:
+                                                data=sanitize(s.recv(minimum_message_len))
+                                        except:pass
                                         # received pong (ignore)
-                                        if data.find("/PING ")>-1:
+                                        if data.find("/PING ") > -1:
                                                 continue 
                                         # received roster list
+                                        # NOTE: display the roster connected to the server
                                         if data.startswith("--roster"):
                                                 roster=[]
                                                 for i in data.split(' ')[1:]:
                                                         roster.append(i)
                                         # Write received data to channel
-                                        log(data)
+                                        log("message: %s" % data)
                                 # We need to send a message
                                 if len(msgs)>0:  
                                         randomwait-=1 # Wait some random time to add noise
                                         if randomwait==0:
                                                 m = addpadding(msgs.pop(0))
-                                                s.sendall(m)
+                                                s.sendall(bytearray(m.encode()))
                                                 randomwait=random.randint(1,clientRandomWait)
                                 # send noise in form of PINGs
                                 if random.randint(0,clientRandomNoise)==0:
@@ -691,7 +652,7 @@ def clientConnectionThread(stdscr,ServerOnionURL,msgs):
 
 
 ## Client main procedure
-def clientMain(stdscr,ServerOnionURL):
+def clientMain(stdscr,ServerOnionURL): # NOTE: called when the client initializes curses
         global cmdline
         global inspoint
         global pagepoint
@@ -701,12 +662,13 @@ def clientMain(stdscr,ServerOnionURL):
         
         ## Message queue to send to server
         msgs=[]
+        # NOTE: spawns a thread to handle client connection
         t = Thread(target=clientConnectionThread, args=(stdscr,ServerOnionURL,msgs))
         t.daemon = True
         t.start()
 
         # Main Loop
-        while True:
+        while True: # NOTE: a lot of curses input
                 input=stdscr.getch()
 
                 # event processing
@@ -767,7 +729,7 @@ def Client(ServerOnionURL):
       curses.cbreak()
       stdscr.keypad(1)
       # Enter the main loop
-      clientMain(stdscr,ServerOnionURL)
+      clientMain(stdscr,ServerOnionURL) # NOTE: start of the server connection with the client
       # Set everything back to normal
       stdscr.keypad(0)
       curses.echo()
@@ -794,10 +756,12 @@ if __name__=='__main__':
         parser.print_help()
         exit(0)
   (options, args) = parser.parse_args()
+  # NOTE: starts the server or client connection
   if options.channel_name:
         s=Server()
         s.serverMain(options.channel_name)
   else:
         if len(options.connect)>0:
+                print(options)
                 Client(options.connect)
         else: parser.print_help()

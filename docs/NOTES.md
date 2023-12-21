@@ -8,10 +8,14 @@
 
 [Stem Homepage](https://stem.torproject.org/index.html)
 
+[Stem Tortoise and the Hare Example](https://stem.torproject.org/tutorials/tortoise_and_the_hare.html)
+
 ## Onion Routing Notes
 
 [Wikipedia - Onion Routing](https://en.wikipedia.org/wiki/Onion_routing)
 [Geeks for Geeks - Onion Routing](https://www.geeksforgeeks.org/onion-routing/)
+
+Multiple layers of encryption keys and communication data. There is usually 3 layers of the routing protocol around the actual data.
 
 ![Onion Routing](https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Onion_diagram.svg/1200px-Onion_diagram.svg.png)
 
