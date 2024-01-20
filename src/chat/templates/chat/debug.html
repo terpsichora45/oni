@@ -3,8 +3,8 @@
     <title>Oni</title>
 </head>
 <body>
-    <h1>Welcome to Oni</h1>
-    <div>
+    <h1>Welcome to Oni Debug</h1>
+    <div> {% comment %} Test div for user printing {% endcomment %}
         {% if users %}
             {% for user in users %}
                 <p>{{ user.nick }} : {{ user.id }}</p>
@@ -12,5 +12,7 @@
         {% else %}
             <p>Failed to import User</p>
         {% endif %}
+    </div>
+    <div> {% comment %} start of the text input div {% endcomment %}
     </div>
 </body>

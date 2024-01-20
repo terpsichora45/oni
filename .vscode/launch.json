@@ -5,13 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Oni Server: Current File",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": ["-s", "127.0.0.1"]
+        },
+        {
+            "name": "Oni Client: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["-c", "n4lkwuyis7hlyjpmfcwwfkjrifksp7w4jvwd7zwunx6oeszixsxckfid.onion"]
         }
     ]
 }

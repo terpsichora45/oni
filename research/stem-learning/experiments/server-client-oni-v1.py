@@ -1,9 +1,7 @@
-
 from optparse import OptionParser
 import sys
 import datetime
 from threading import Thread
-import stem
 import socket
 import random
 import time
@@ -25,7 +23,8 @@ class Server:
     def __init__(self, hostname):self.hostname=hostname
 
     def connect(self):
-        global server_roster
+        # global server_roster
+        # todo: setup server roster appending
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -38,25 +37,35 @@ class Server:
         while True:
             try:
                 conn, addr = s.accept()
+
                 nick = "user_%d" % random.randint(0, 1000)
+                log("Connection established to %s" % nick)
                 wel_msg = "Welcome %s" % nick
+
                 self.messages.append(wel_msg)
+
                 handle = Thread(target=self.handle_client, args=(conn, addr, nick))
                 handle.daemon = True
                 handle.start()
+
             except KeyboardInterrupt:
                 log("Server closing.")
                 exit(0)
-            except:
-                pass
+
+            except:continue
 
     def handle_client(self, conn, addr, nickname):
-        log("Connection established to %s" % nickname)
-        data = conn.recv(buffer_size)
-        log("%s >> %s" % (nickname, sanitize(data)))
+        while True:
+            try:
+                data = conn.recv(buffer_size)
+                if not data:break
+                log("%s >> %s" % (nickname, sanitize(data)))
+                msg = (add_padding('hello there')).encode()
+                conn.send(msg)
+                log("server >> " + sanitize(msg))
+            except:break
         conn.close()
         log("Connection closed to %s" % nickname)
-        # todo: handle the client data
 
 class TorStem:
     def connect(self, addr = '127.0.0.1', con_port = 9051):
@@ -75,7 +84,7 @@ class TorStem:
             exit(0)
 
         # Connect to Tor
-        # !: make sure you run tests locally
+        # make sure you run tests locally
         self.controller = Controller.from_port(address=addr, port=con_port)
         self.controller.authenticate()
 
@@ -102,10 +111,17 @@ class TorStem:
         log("Hostname is %s" % self.hostname)
 
 def add_padding(data: str):
+    """
+    * `data`: The unicode string to be padded
+
+    Appends the necessary buffer data to the message
+    """
+    global buffer_size
     if len(data) < buffer_size:
         data += chr(0)
-        for _ in range(buffer_size - len(data)):
-            data += chr(random.randint(ord('a'), ord('z')))
+        data = bytearray(data.encode())
+        for _ in range(0, buffer_size - len(data)):
+            data += chr(random.randint(33, 127)).encode() # ord('!'), ord('~') all unicode English alphabet
     return data
 
 def sanitize(data: str):
@@ -113,24 +129,39 @@ def sanitize(data: str):
         return str(data.split(bytearray(chr(0).encode()))[0]) # split on \x0 and return relevant data
     else:return
 
-def log(*args):
+def log(*args) -> str:
+    arg_strs = []
+    arg_print = True
+    if len(args) > 1 and type(args[-1]) is bool:
+        arg_print = args[-1]
+        args = args[:-1]
     for arg in args:
-        print("[%s] %s" % (datetime.datetime.now().strftime("%H:%M:%S"), arg))
+        string = "[%s] %s" % (datetime.datetime.now().strftime("%H:%M:%S"), arg)
+        if arg_print is False:
+            arg_strs.append(string)
+            continue
+        print(string)
+    if arg_print is False: return arg_strs
+
+def clean_print_msg(data: str):
+    # junk_start = data.find(chr(0))
+    data_txt = data.split(chr(0))[0] + ' '
+    clean_print =  '...' #'.' * (buffer_size-junk_start-1)
+    log(data_txt + clean_print)
 
 def main_client(destination) -> None:
-    # todo: continue the client to allow for receiving messages
-    # todo: allow the client to send real-time information
+    # todo[x]: continue the client to allow for receiving messages
+    # todo[ ]: allow the client to send real-time information
+    # todo[x]: fix the client issue with the double message print with (server1-client1-test):
 
-    # :: in progress :: 
-    # - integrate user input
-
-    try:
+    try: # import the socks library
         import socks
     except:
         log("Failed to import SocksiPy module.")
         log("Please install SocksiPy before proceeding.")
         exit(0)
 
+    # perform client connection
     while True:
         try:
             log("Attempting connection to %s:%d" % (destination, hidden_service_port))
@@ -142,36 +173,40 @@ def main_client(destination) -> None:
             s.setblocking(0)
 
             log("Client Connection: Connected to %s" % destination)
-            log("Client connection: Requesting roster...")
+            break;
+            # log("Client connection: Requesting roster...")
         except:
             log("Client Connection: Cannot connect. Retrying...")
-            time.sleep(1)
             continue
 
-        try: # start of user input
-            # web-based user input vs cli-based user input
-            # web-based could have a better interface and just have python act as the server
-            # cli-based could have easier setup and use
-            # i think ill have the python run as a server in the background with a web interface to call send and receive
-            # it could be a good opprotunity to use django
-            pass
-        except:pass
+    while True: # configure the socket connection and send an obfuscated message
+        try:
+            # todo
+            # : setup message obfuscation
+            # : sending `None` after the message
 
-        # todo
-        # : setup message obfuscation
-        # : create a more secure way of determining data
-        # : make the socket connection for the client accessible
-        msg = 'Hello, world!'
-        msg = add_padding(msg)
-        log(msg)
-        # msg = b"Hello, world!" + b'\\' + bytearray((buffer_size-14) * b' ')
-        s.send(bytearray(msg.encode()))
-        s.close()
-        log("Client Connection: Disconnected from Server")
-        return
-        # todo: insert interaction code
+            # the very beta rendition of client message sending
+            msg = input(log('> ', False)[0])
+            msg = add_padding(msg)
 
-def main_server(hostaddr) -> None:
+            x = bytearray(msg)
+
+            _result = s.send(x)
+
+            data = None
+            while not data:
+                try:
+                    # note: look at recvfrom func
+                    data = s.recv(buffer_size)
+                except:pass
+            log("server >> " + sanitize(data))
+        except KeyboardInterrupt:break
+
+    s.close()
+    log("Client Connection: Disconnected from Server")
+    return
+
+def main_server(hostaddr='') -> None:
     ts = TorStem()
     try:
         ts.connect()
@@ -185,8 +220,8 @@ def main_server(hostaddr) -> None:
 
 if __name__ == "__main__":
     parser = OptionParser()
-    parser.add_option("-c", "--client", action="store", type="string", dest="destination", help="Starts the Tor client")
-    parser.add_option("-s", "--server", action="store", type="string", dest="server", help="Starts the Tor server")
+    parser.add_option("-c", "--client", action="store", type="string", dest="destination", help="Target client server")
+    parser.add_option("-s", "--server", action="store", type="string", dest="server", help="Target domain for the tor server")
     # parser.add_option("-p", "--port", action="store", type="int", dest="port", help="Defines the operating port")
 
     if len(sys.argv)==1:
